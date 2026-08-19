@@ -3238,6 +3238,54 @@ document
     }
   );
 
+// ============================================================
+// CONEXIÓN CON GOOGLE APPS SCRIPT
+// ============================================================
+
+const APPS_SCRIPT_URL =
+  "https://script.google.com/macros/s/AKfycbxmwTsAzAlz6zHRFjZTIBgEsWk9Vqo9_qp24iY974UjlBE5_TaztSPmjLomGwl_3vc/exec";
+
+let appsScriptRequestId = 0;
+
+function consultarAppsScript(action, parametros, callback) {
+  const callbackName = "appsScriptCallback_" + (++appsScriptRequestId);
+
+  window[callbackName] = function(respuesta) {
+    try {
+      callback(respuesta);
+    } finally {
+      delete window[callbackName];
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+    }
+  };
+
+  const script = document.createElement("script");
+
+  const params = new URLSearchParams({
+    action: action,
+    callback: callbackName,
+    ...(parametros || {})
+  });
+
+  script.src = APPS_SCRIPT_URL + "?" + params.toString();
+
+  script.onerror = function() {
+    callback({
+      status: "error",
+      message: "No se pudo conectar con Google Apps Script."
+    });
+
+    delete window[callbackName];
+
+    if (script.parentNode) {
+      script.parentNode.removeChild(script);
+    }
+  };
+
+  document.body.appendChild(script);
+}
 </script>
 
 </body>
