@@ -1,222 +1,122 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <title>Escáner de productos</title>
-
-  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #f4f7fb;
-      color: #1f2937;
-      text-align: center;
-    }
-
-    .header {
-      background: linear-gradient(135deg, #2563eb, #3b82f6);
-      color: white;
-      padding: 22px 15px;
-    }
-
-    .header h1 {
-      margin: 0;
-      font-size: 24px;
-    }
-
-    .container {
-      max-width: 500px;
-      margin: 25px auto;
-      padding: 20px;
-    }
-
-    .card {
-      background: white;
-      border-radius: 18px;
-      padding: 20px;
-      box-shadow: 0 5px 20px rgba(0,0,0,0.08);
-    }
-
-    #reader {
+button {
       width: 100%;
-      margin-top: 20px;
-    }
-
-    button {
       border: none;
       border-radius: 12px;
-      padding: 14px 20px;
-      font-size: 16px;
+      padding: 16px;
+      margin-top: 15px;
+      font-size: 17px;
       font-weight: bold;
       cursor: pointer;
-      margin-top: 15px;
     }
 
-    #startButton {
-      background: #2563eb;
+    #start {
+      background: #10b981;
       color: white;
-      width: 100%;
     }
 
-    #stopButton {
+    #stop {
       background: #ef4444;
       color: white;
-      width: 100%;
-      display: none;
     }
 
-    #result {
+    #status {
       margin-top: 20px;
-      padding: 15px;
+      padding: 14px;
       border-radius: 12px;
-      background: #ecfdf5;
-      color: #047857;
-      font-size: 18px;
+      background: #eef2ff;
       font-weight: bold;
-      display: none;
-      word-break: break-word;
-    }
-
-    .instructions {
-      color: #64748b;
-      margin-top: 10px;
-      line-height: 1.5;
     }
   </style>
 </head>
 
 <body>
 
-  <div class="header">
-    <h1>📷 Escáner de productos</h1>
-  </div>
+  <header>
+    <h1>📷 Prueba de cámara</h1>
+  </header>
 
-  <div class="container">
-
+  <main>
     <div class="card">
 
-      <h2>Escanear código de barras</h2>
+      <h2>Cámara del dispositivo</h2>
 
-      <p class="instructions">
-        Presioná el botón y permití el acceso a la cámara.
-        Luego apuntá al código de barras.
+      <p>
+        Primero vamos a comprobar que la cámara pueda funcionar
+        correctamente desde una página web.
       </p>
 
-      <button id="startButton" onclick="startScanner()">
+      <button id="start">
         📷 Abrir cámara
       </button>
 
-      <button id="stopButton" onclick="stopScanner()">
+      <button id="stop">
         ✕ Cerrar cámara
       </button>
 
-      <div id="reader"></div>
+      <video id="video" autoplay playsinline muted></video>
 
-      <div id="result"></div>
+      <div id="status">
+        Cámara detenida
+      </div>
 
     </div>
-
-  </div>
+  </main>
 
   <script>
+    let stream = null;
 
-    let scanner = null;
+    const video = document.getElementById("video");
+    const startButton = document.getElementById("start");
+    const stopButton = document.getElementById("stop");
+    const status = document.getElementById("status");
 
-    function startScanner() {
+    startButton.addEventListener("click", async () => {
 
-      document.getElementById("startButton").style.display = "none";
-      document.getElementById("stopButton").style.display = "block";
+      try {
 
-      scanner = new Html5Qrcode("reader");
+        status.textContent = "Solicitando acceso a la cámara...";
 
-      const config = {
-        fps: 10,
-        qrbox: {
-          width: 280,
-          height: 160
-        },
-        formatsToSupport: [
-          Html5QrcodeSupportedFormats.EAN_13,
-          Html5QrcodeSupportedFormats.EAN_8,
-          Html5QrcodeSupportedFormats.UPC_A,
-          Html5QrcodeSupportedFormats.UPC_E,
-          Html5QrcodeSupportedFormats.CODE_128,
-          Html5QrcodeSupportedFormats.CODE_39
-        ]
-      };
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: {
+              ideal: "environment"
+            }
+          },
+          audio: false
+        });
 
-      scanner.start(
-        {
-          facingMode: "environment"
-        },
-        config,
-        function(decodedText) {
+        video.srcObject = stream;
 
-          console.log("Código detectado:", decodedText);
+        status.textContent = "✅ Cámara funcionando correctamente";
 
-          document.getElementById("result").style.display = "block";
+      } catch (error) {
 
-          document.getElementById("result").innerHTML =
-            "✅ Código detectado:<br><br>" + decodedText;
+        console.error(error);
 
-          stopScanner();
-
-        },
-        function(errorMessage) {
-          // No hacemos nada mientras busca el código.
-        }
-      ).catch(function(error) {
-
-        console.error("ERROR DE CÁMARA:", error);
-
-        document.getElementById("result").style.display = "block";
-
-        document.getElementById("result").style.background = "#fef2f2";
-        document.getElementById("result").style.color = "#dc2626";
-
-        document.getElementById("result").innerHTML =
-          "❌ No se pudo acceder a la cámara.<br><br>" +
-          error;
-
-        document.getElementById("startButton").style.display = "block";
-        document.getElementById("stopButton").style.display = "none";
-      });
-    }
-
-    function stopScanner() {
-
-      if (scanner) {
-
-        scanner.stop()
-          .then(function() {
-
-            scanner.clear();
-            scanner = null;
-
-            document.getElementById("reader").innerHTML = "";
-
-            document.getElementById("startButton").style.display = "block";
-            document.getElementById("stopButton").style.display = "none";
-
-          })
-          .catch(function(error) {
-
-            console.error("Error al cerrar cámara:", error);
-
-          });
-
-      } else {
-
-        document.getElementById("startButton").style.display = "block";
-        document.getElementById("stopButton").style.display = "none";
+        status.textContent =
+          "❌ Error al acceder a la cámara: " +
+          error.name;
 
       }
-    }
 
+    });
+
+    stopButton.addEventListener("click", () => {
+
+      if (stream) {
+
+        stream.getTracks().forEach(track => {
+          track.stop();
+        });
+
+        stream = null;
+        video.srcObject = null;
+
+      }
+
+      status.textContent = "Cámara detenida";
+
+    });
   </script>
 
 </body>
