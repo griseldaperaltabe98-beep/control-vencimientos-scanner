@@ -1,123 +1,260 @@
-button {
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Prueba de escáner</title>
+
+  <!-- Lector de códigos -->
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f7fb;
+      color: #172033;
+    }
+
+    header {
+      background: linear-gradient(135deg, #2563eb, #3b82f6);
+      color: white;
+      padding: 25px 20px;
+      text-align: center;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 28px;
+    }
+
+    .container {
+      max-width: 650px;
+      margin: 30px auto;
+      padding: 0 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 20px;
+      padding: 25px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+    }
+
+    h2 {
+      margin-top: 0;
+    }
+
+    #reader {
+      width: 100%;
+      margin-top: 20px;
+    }
+
+    #resultado {
+      margin-top: 20px;
+      padding: 18px;
+      border-radius: 14px;
+      background: #e8f5e9;
+      border: 1px solid #b7dfb9;
+      display: none;
+    }
+
+    #codigo {
+      font-size: 24px;
+      font-weight: bold;
+      word-break: break-all;
+    }
+
+    .estado {
+      margin-top: 15px;
+      padding: 12px;
+      border-radius: 10px;
+      background: #eef2ff;
+    }
+
+    button {
       width: 100%;
       border: none;
       border-radius: 12px;
-      padding: 16px;
+      padding: 15px;
       margin-top: 15px;
       font-size: 17px;
       font-weight: bold;
       cursor: pointer;
     }
 
-    #start {
-      background: #10b981;
+    #iniciar {
+      background: #2563eb;
       color: white;
     }
 
-    #stop {
+    #detener {
       background: #ef4444;
       color: white;
-    }
-
-    #status {
-      margin-top: 20px;
-      padding: 14px;
-      border-radius: 12px;
-      background: #eef2ff;
-      font-weight: bold;
+      display: none;
     }
   </style>
 </head>
 
 <body>
 
-  <header>
-    <h1>📷 Prueba de cámara</h1>
-  </header>
+<header>
+  <h1>📷 Escáner de productos</h1>
+</header>
 
-  <main>
-    <div class="card">
+<div class="container">
 
-      <h2>Cámara del dispositivo</h2>
+  <div class="card">
 
-      <p>
-        Primero vamos a comprobar que la cámara pueda funcionar
-        correctamente desde una página web.
-      </p>
+    <h2>Escanear código de barras</h2>
 
-      <button id="start">
-        📷 Abrir cámara
-      </button>
+    <p>
+      Presioná iniciar y apuntá la cámara al código de barras del producto.
+    </p>
 
-      <button id="stop">
-        ✕ Cerrar cámara
-      </button>
+    <button id="iniciar" onclick="iniciarScanner()">
+      📷 Iniciar cámara
+    </button>
 
-      <video id="video" autoplay playsinline muted></video>
+    <button id="detener" onclick="detenerScanner()">
+      ✕ Detener cámara
+    </button>
 
-      <div id="status">
-        Cámara detenida
-      </div>
-
+    <div id="estado" class="estado">
+      Cámara detenida.
     </div>
-  </main>
 
-  <script>
-    let stream = null;
+    <div id="reader"></div>
 
-    const video = document.getElementById("video");
-    const startButton = document.getElementById("start");
-    const stopButton = document.getElementById("stop");
-    const status = document.getElementById("status");
+    <div id="resultado">
+      <div>Código detectado:</div>
+      <div id="codigo"></div>
+    </div>
 
-    startButton.addEventListener("click", async () => {
+  </div>
 
-      try {
+</div>
 
-        status.textContent = "Solicitando acceso a la cámara...";
+<script>
 
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: {
-              ideal: "environment"
-            }
-          },
-          audio: false
-        });
+  let scanner = null;
+  let escaneando = false;
 
-        video.srcObject = stream;
+  function iniciarScanner() {
 
-        status.textContent = "✅ Cámara funcionando correctamente";
+    document.getElementById("estado").textContent =
+      "Solicitando acceso a la cámara...";
 
-      } catch (error) {
+    document.getElementById("iniciar").style.display = "none";
+    document.getElementById("detener").style.display = "block";
 
-        console.error(error);
+    scanner = new Html5Qrcode("reader");
 
-        status.textContent =
-          "❌ Error al acceder a la cámara: " +
-          error.name;
+    const configuracion = {
+      fps: 10,
+      qrbox: {
+        width: 300,
+        height: 150
+      },
 
+      formatsToSupport: [
+        Html5QrcodeSupportedFormats.EAN_13,
+        Html5QrcodeSupportedFormats.EAN_8,
+        Html5QrcodeSupportedFormats.UPC_A,
+        Html5QrcodeSupportedFormats.UPC_E,
+        Html5QrcodeSupportedFormats.CODE_128,
+        Html5QrcodeSupportedFormats.CODE_39
+      ]
+    };
+
+    scanner.start(
+      {
+        facingMode: "environment"
+      },
+      configuracion,
+
+      function(codigoDetectado) {
+
+        document.getElementById("codigo").textContent =
+          codigoDetectado;
+
+        document.getElementById("resultado").style.display =
+          "block";
+
+        document.getElementById("estado").textContent =
+          "✅ Código detectado correctamente.";
+
+        console.log("Código detectado:", codigoDetectado);
+
+      },
+
+      function(error) {
+        // No mostramos errores durante el escaneo.
       }
 
+    ).then(function() {
+
+      escaneando = true;
+
+      document.getElementById("estado").textContent =
+        "🟢 Cámara activa. Apuntá al código de barras.";
+
+    }).catch(function(error) {
+
+      console.error(error);
+
+      document.getElementById("estado").textContent =
+        "❌ No se pudo iniciar la cámara.";
+
+      document.getElementById("iniciar").style.display =
+        "block";
+
+      document.getElementById("detener").style.display =
+        "none";
     });
+  }
 
-    stopButton.addEventListener("click", () => {
 
-      if (stream) {
+  function detenerScanner() {
 
-        stream.getTracks().forEach(track => {
-          track.stop();
+    if (scanner && escaneando) {
+
+      scanner.stop()
+        .then(function() {
+
+          scanner.clear();
+
+          scanner = null;
+          escaneando = false;
+
+          document.getElementById("estado").textContent =
+            "Cámara detenida.";
+
+          document.getElementById("iniciar").style.display =
+            "block";
+
+          document.getElementById("detener").style.display =
+            "none";
+
+        })
+        .catch(function(error) {
+
+          console.error(error);
+
         });
 
-        stream = null;
-        video.srcObject = null;
+    } else {
 
-      }
+      document.getElementById("iniciar").style.display =
+        "block";
 
-      status.textContent = "Cámara detenida";
+      document.getElementById("detener").style.display =
+        "none";
+    }
+  }
 
-    });
-  </script>
+</script>
 
 </body>
 </html>
