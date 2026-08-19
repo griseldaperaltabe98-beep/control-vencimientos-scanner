@@ -1833,33 +1833,105 @@ function handleManualCodeInput() {
 
 function processScannedCode(code) {
 
-  var item =
-    findCatalogItemByCode(code);
+  if (!code) return;
 
-  var formCard =
-    document.getElementById(
-      "product-form-card"
-    );
+  const formCard =
+    document.getElementById("product-form-card");
 
-  var badge =
-    document.getElementById(
-      "recognition-badge"
-    );
+  const badge =
+    document.getElementById("recognition-badge");
 
-  var text =
-    document.getElementById(
-      "recognition-text"
-    );
+  const text =
+    document.getElementById("recognition-text");
 
-  var editButton =
-    document.getElementById(
-      "btn-edit-catalog"
-    );
+  const editButton =
+    document.getElementById("btn-edit-catalog");
 
   formCard.style.display = "block";
 
+  // Mostrar estado mientras consultamos Google Apps Script
+  badge.className =
+    "recognition-status status-new";
+
+  text.innerText =
+    "🔎 Buscando producto...";
+
+  editButton.style.display =
+    "none";
+
+  // Consultar catálogo de Google Apps Script
+  consultarAppsScript(
+    "getCatalog",
+    {},
+    function(respuesta) {
+
+      if (
+        !respuesta ||
+        respuesta.status !== "success" ||
+        !Array.isArray(respuesta.data)
+      ) {
+
+        console.error(
+          "Error al consultar catálogo:",
+          respuesta
+        );
+
+        showToast(
+          "No se pudo consultar el catálogo"
+        );
+
+        // Si falla la conexión,
+        // mantenemos el funcionamiento local
+        const localItem =
+          findCatalogItemByCode(code);
+
+        completarDatosProducto(localItem);
+
+        return;
+      }
+
+      // Buscar el código dentro del catálogo recibido
+      const item =
+        respuesta.data.find(function(producto) {
+
+          return String(producto.codigo).trim() ===
+                 String(code).trim();
+
+        });
+
+      // Actualizar también el catálogo local
+      if (Array.isArray(respuesta.data)) {
+        localCatalog = respuesta.data;
+        saveCache();
+        populateDatalists();
+        renderCatalogView();
+      }
+
+      completarDatosProducto(item);
+    }
+  );
+}
+
+
+// ============================================================
+// COMPLETAR DATOS DEL PRODUCTO
+// ============================================================
+
+function completarDatosProducto(item) {
+
+  const badge =
+    document.getElementById("recognition-badge");
+
+  const text =
+    document.getElementById("recognition-text");
+
+  const editButton =
+    document.getElementById("btn-edit-catalog");
+
+
   if (item) {
 
+    // PRODUCTO RECONOCIDO
     isCurrentCodeRecognized = true;
 
     badge.className =
@@ -1871,25 +1943,35 @@ function processScannedCode(code) {
     editButton.style.display =
       "block";
 
+
     document.getElementById(
       "reg-category"
     ).value =
       item.categoria || "";
+
 
     document.getElementById(
       "reg-brand"
     ).value =
       item.marca || "";
 
+
     document.getElementById(
       "reg-name"
     ).value =
       item.producto || "";
 
+
     disableCatalogInputs();
+
+    showToast(
+      "Producto encontrado en el catálogo"
+    );
+
 
   } else {
 
+    // PRODUCTO NUEVO
     isCurrentCodeRecognized = false;
 
     badge.className =
@@ -1901,22 +1983,28 @@ function processScannedCode(code) {
     editButton.style.display =
       "none";
 
+
     document.getElementById(
       "reg-category"
     ).value = "";
+
 
     document.getElementById(
       "reg-brand"
     ).value = "";
 
+
     document.getElementById(
       "reg-name"
     ).value = "";
 
+
     enableCatalogEdit();
 
+    showToast(
+      "Producto nuevo: completá sus datos"
+    );
   }
-
 }
 
 
